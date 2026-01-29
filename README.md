@@ -1,6 +1,7 @@
 # GDB_music_recommendation
 This page only have copied codes from Vlad Badushkov github page, his medium site and results from AI queries in an attempt to learn something about this theme. 
 
+//************************************************************************************************************************************************************
 # Bootcamp Neo4J - Análise de Dados com Grafos
 ## desafio do 2° módulo: Primeiros Passos com Cypher e Neo4j.
 
@@ -23,20 +24,19 @@ This page only have copied codes from Vlad Badushkov github page, his medium sit
 fonte destes dados:
 https://vladbatushkov.medium.com/one-month-graph-challenge-melodiya-3836951a905b
 
-# 1a consulta: chama lastfm, desenrola os dados, cria
+## 1a consulta: chama lastfm, desenrola os dados, cria
 CALL apoc.load.html("https://www.last.fm/music", { data: "a.music-more-tags-tag-inner-wrap, section.music-section:eq(0) a.music-featured-item-heading-link" }) YIELD value
 UNWIND value.data as n
 MERGE (g:Genre { url: n.attributes.href, name: apoc.text.capitalizeAll(n.text) })
 
-# como a primeira consulta falhou recorri à IA do Google:
+## como a primeira consulta falhou recorri à IA do Google:
 
-O erro ocorre porque o Neo4J Aura (a versão em nuvem) restringe o uso de diversos procedimentos da biblioteca APOC por motivos de segurança, especialmente aqueles que realizam requisições HTTP externas ou acessam arquivos, como o apoc.load.html [2].
+"O erro ocorre porque o Neo4J Aura (a versão em nuvem) restringe o uso de diversos procedimentos da biblioteca APOC por motivos de segurança, especialmente aqueles que realizam requisições HTTP externas ou acessam arquivos, como o apoc.load.html [2].
 Para resolver isso e prosseguir com seu exercício em 2026, você tem duas alternativas principais:
 1. Usar uma aplicação intermediária (Recomendado)
 Como o banco de dados não pode mais "buscar" a informação diretamente na web, você deve usar uma linguagem de programação (Python, JavaScript ou Java) para fazer o scraping e enviar os dados prontos para o Aura.
 Exemplo em Python:
 Você pode usar a biblioteca BeautifulSoup para extrair os dados e o driver oficial do Neo4j para Python para inseri-los:
-
 
 #código python: 
 
@@ -51,92 +51,10 @@ soup = BeautifulSoup(response.text, 'html.parser')
 
 tags = [a.get_text(strip=True) for a in soup.select("a.music-more-tags-tag-inner-wrap")]
 
-# 2. Inserção no Neo4j Aura
-driver = GraphDatabase.driver("neo4j+s://<seu-id>.databases.neo4j.io", auth=("neo4j", "sua-senha"))
-
-with driver.session() as session:
-    session.run("UNWIND $tags AS tagName MERGE (t:Tag {name: tagName})", tags=tags)
-
-
-//2a consulta: adicionando bandas aos gêneros
-MATCH (g:Genre)
-CALL apoc.load.html("https://last.fm" + g.url + "/artists", { data: "h3.big-artist-list-title a" }) YIELD value
-UNWIND value.data as n
-MERGE (b:Band { name: n.text })
-MERGE (b)-[:OF]->(g)
-
-//3a consulta: finding a band workings in the many genres. Let’s name it «the most mix-genre bands».
-MATCH (b:Band)-[:OF]->(g:Genre)
-RETURN b.name, count(g) as genres
-ORDER BY genres DESC
-
-// 4a consulta: Finding a genre with bands connected with this genre, and at the same time these bands connected to other genres. 
-// Let’s name it «the most mix-band genres».
-MATCH (g1:Genre)<-[:OF]-(b:Band)-[:OF]->(g2:Genre)
-RETURN g1.name as genre_name, count(DISTINCT b) as num_of_bands
-ORDER BY num_of_bands DESC
-
-//5a consulta: list of Listeners. 
-MATCH (b:Band)-[:OF]->(g:Genre { name: "Rock" })
-CALL apoc.load.html("https://last.fm/music/" + replace(b.name, " ", "+") + "/+listeners", { data: "h4.user-list-name a" }) YIELD value
-UNWIND value.data as n
-MERGE (p:Person { name: n.text })
-MERGE (p)-[:LIKES]->(b)
-
-//6a consulta: Adaptar para meus gêneros
-// I pick only 6 genres, that I prefer: Indie, Rock, British, Alternative, Metal, Electronic.
-MATCH (p:Person)-[:LIKES]->(b:Band)
-WITH p, count(b) as bands_likes
-RETURN p.name as name, bands_likes
-ORDER BY bands_likes DESC
-
-//6a consulta -- 2a parte - a adaptação é aqui ó:
-WITH ["system of a down", "linkin park", "franz ferdinand", "oasis", "the killers", "arctic monkeys", "daft punk", "chemical brothers", "underworld", "kasabian", "queen", "red hot chili peppers", "the strokes", "foals", "the black keys", "rammstein", "imagine dragons", "coldplay"] as favorites
-MATCH (b:Band)
-WHERE apoc.coll.indexOf(favorites, toLower(b.name)) > -1
-MERGE (p:Person { name: "vlad batushkov" })
-MERGE (p)-[:LIKES]->(b)
-
-//This is not a full picture, but by this list I can recognize my music preferences.
-// 6a consulta -- 3a parte - a adaptação é aqui ó: E aqui tbm tem adaptação
-MATCH (p:Person { name: "sidnei lopes" })-[:LIKES]->(b:Band)-[:OF]->(g:Genre) RETURN p, b, g
-
-//7a consulta:
-// What music bands can be recommended to me? Ok, how to solve this task. 
-// One of the ways is: to find all persons, who listen same music bands as me. 
-// Within  these persons find bands (excluding bands, that I already like) with biggest amount of followers.
-
-MATCH (vb:Person { name: "sidnei lopes" })-[:LIKES]->(cross_band:Band)<-[:LIKES]-(p:Person)-[:LIKES]->(other_band:Band)
-WHERE NOT (vb)-[:LIKES]->(other_band)
-WITH other_band.name as name, count(p) as followers_num
-RETURN name, followers_num
-ORDER BY followers_num DESC
-LIMIT 10
-
-References:
-1) Github do projeto
-https://gist.github.com/vladbatushkov/d92b4319763c99a5c5231fb699aaecc7#file-omgc-may-11-1-cypher
-https://gist.github.com/vladbatushkov/4b70acb8d67f90e8b57853153b9beb27#file-omgc-may-11-2-cypher
-https://gist.github.com/vladbatushkov/da5bb62d2c3b631d7d557f63fc315b24#file-omgc-may-11-3-cypher
-https://gist.github.com/vladbatushkov/d7677a3c01d0ed82aeb3bd0f0ed6d2a6#file-omgc-may-11-4-cypher
-https://gist.github.com/vladbatushkov/4c6061432ab78332f35e297f00018367#file-omgc-may-11-5-cypher
-
-2) demais códigos foram retirados da página "Building a Neo4j Recommendation System with Cypher query
-May 11: Melodiya, One Month Graph Challenge, de Vlad Batushkov - postado por ele em 
-11 de Maio de 2019. Disponível em: 
-https://vladbatushkov.medium.com/one-month-graph-challenge-melodiya-3836951a905b.
-Acesso em: 27 de janeiro de 2026.
-
-
-
-
-
-
-
+# 2a alternativa para o problema:
 ===============================================================
 NEO4J DESKTOP
 ===============================================================
-
 2. Usar o Neo4j Desktop (Local)
 Se o objetivo do exercício for estritamente aprender o comando apoc.load.html, você não conseguirá usar o Aura.
 Baixe e instale o Neo4j Desktop.
@@ -164,6 +82,83 @@ De nada! Se precisar de mais alguma ajuda com o código em Python ou com as conf
 Dica final: Ao usar o Python, verifique sempre a documentação atualizada no Portal de Desenvolvedores do Neo4j para garantir a compatibilidade com as versões mais recentes das bibliotecas.
 Boa sorte com seus grafos e com o Last.fm!
 
+# ===== voltanod aos códigos de Vlad Batushkov ==============
+# 2. Inserção no Neo4j Aura
+driver = GraphDatabase.driver("neo4j+s://<seu-id>.databases.neo4j.io", auth=("neo4j", "sua-senha"))
+
+with driver.session() as session:
+    session.run("UNWIND $tags AS tagName MERGE (t:Tag {name: tagName})", tags=tags)"
+
+## 2a consulta: adicionando bandas aos gêneros
+MATCH (g:Genre)
+CALL apoc.load.html("https://last.fm" + g.url + "/artists", { data: "h3.big-artist-list-title a" }) YIELD value
+UNWIND value.data as n
+MERGE (b:Band { name: n.text })
+MERGE (b)-[:OF]->(g)
+
+## 3a consulta: finding a band workings in the many genres. Let’s name it «the most mix-genre bands».
+MATCH (b:Band)-[:OF]->(g:Genre)
+RETURN b.name, count(g) as genres
+ORDER BY genres DESC
+
+## 4a consulta: Finding a genre with bands connected with this genre, and at the same time these bands connected to other genres. 
+// Let’s name it «the most mix-band genres».
+MATCH (g1:Genre)<-[:OF]-(b:Band)-[:OF]->(g2:Genre)
+RETURN g1.name as genre_name, count(DISTINCT b) as num_of_bands
+ORDER BY num_of_bands DESC
+
+## 5a consulta: list of Listeners. 
+MATCH (b:Band)-[:OF]->(g:Genre { name: "Rock" })
+CALL apoc.load.html("https://last.fm/music/" + replace(b.name, " ", "+") + "/+listeners", { data: "h4.user-list-name a" }) YIELD value
+UNWIND value.data as n
+MERGE (p:Person { name: n.text })
+MERGE (p)-[:LIKES]->(b)
+
+## 6a consulta: Adaptar para meus gêneros
+// I pick only 6 genres, that I prefer: Indie, Rock, British, Alternative, Metal, Electronic.
+MATCH (p:Person)-[:LIKES]->(b:Band)
+WITH p, count(b) as bands_likes
+RETURN p.name as name, bands_likes
+ORDER BY bands_likes DESC
+
+## 6a consulta -- 2a parte - a adaptação é aqui ó:
+WITH ["system of a down", "linkin park", "franz ferdinand", "oasis", "the killers", "arctic monkeys", "daft punk", "chemical brothers", "underworld", "kasabian", "queen", "red hot chili peppers", "the strokes", "foals", "the black keys", "rammstein", "imagine dragons", "coldplay"] as favorites
+MATCH (b:Band)
+WHERE apoc.coll.indexOf(favorites, toLower(b.name)) > -1
+MERGE (p:Person { name: "vlad batushkov" })
+MERGE (p)-[:LIKES]->(b)
+
+## This is not a full picture, but by this list I can recognize my music preferences.
+// 6a consulta -- 3a parte - a adaptação é aqui ó: E aqui tbm tem adaptação
+MATCH (p:Person { name: "sidnei lopes" })-[:LIKES]->(b:Band)-[:OF]->(g:Genre) RETURN p, b, g
+
+## 7a consulta:
+// What music bands can be recommended to me? Ok, how to solve this task. 
+// One of the ways is: to find all persons, who listen same music bands as me. 
+// Within  these persons find bands (excluding bands, that I already like) with biggest amount of followers.
+
+MATCH (vb:Person { name: "sidnei lopes" })-[:LIKES]->(cross_band:Band)<-[:LIKES]-(p:Person)-[:LIKES]->(other_band:Band)
+WHERE NOT (vb)-[:LIKES]->(other_band)
+WITH other_band.name as name, count(p) as followers_num
+RETURN name, followers_num
+ORDER BY followers_num DESC
+LIMIT 10
+
+References:
+1) Github do projeto
+https://gist.github.com/vladbatushkov/d92b4319763c99a5c5231fb699aaecc7#file-omgc-may-11-1-cypher
+https://gist.github.com/vladbatushkov/4b70acb8d67f90e8b57853153b9beb27#file-omgc-may-11-2-cypher
+https://gist.github.com/vladbatushkov/da5bb62d2c3b631d7d557f63fc315b24#file-omgc-may-11-3-cypher
+https://gist.github.com/vladbatushkov/d7677a3c01d0ed82aeb3bd0f0ed6d2a6#file-omgc-may-11-4-cypher
+https://gist.github.com/vladbatushkov/4c6061432ab78332f35e297f00018367#file-omgc-may-11-5-cypher
+
+2) demais códigos foram retirados da página "Building a Neo4j Recommendation System with Cypher query
+May 11: Melodiya, One Month Graph Challenge, de Vlad Batushkov - postado por ele em 
+11 de Maio de 2019. Disponível em: 
+https://vladbatushkov.medium.com/one-month-graph-challenge-melodiya-3836951a905b.
+Acesso em: 27 de janeiro de 2026.
+
+# Uma curiosidade minha sobre o nome da empresa virou uma pergunta à IA da Google:
 Oi google, vc pode explicar o nome da empresa Neo4j pra mim?
 
 O nome da empresa
