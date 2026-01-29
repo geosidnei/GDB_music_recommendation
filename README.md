@@ -25,8 +25,11 @@ Fonte destes dados:
 https://vladbatushkov.medium.com/one-month-graph-challenge-melodiya-3836951a905b
 
 ## 1a consulta: chama lastfm, desenrola os dados etc 
+
 CALL apoc.load.html("https://www.last.fm/music", { data: "a.music-more-tags-tag-inner-wrap, section.music-section:eq(0) a.music-featured-item-heading-link" }) YIELD value
+
 UNWIND value.data as n
+
 MERGE (g:Genre { url: n.attributes.href, name: apoc.text.capitalizeAll(n.text) })
 
 ## como a primeira consulta falhou recorri à IA do Google:
@@ -98,47 +101,72 @@ Boa sorte com seus grafos e com o Last.fm!
 ## Voltando aos códigos de Vlad Batushkov 
 ## 2a consulta: adicionando bandas aos gêneros
 MATCH (g:Genre)
+
 CALL apoc.load.html("https://last.fm" + g.url + "/artists", { data: "h3.big-artist-list-title a" }) YIELD value
+
 UNWIND value.data as n
+
 MERGE (b:Band { name: n.text })
+
 MERGE (b)-[:OF]->(g)
 
 ## 3a consulta: finding a band workings in the many genres. Let’s name it «the most mix-genre bands».
 MATCH (b:Band)-[:OF]->(g:Genre)
+
 RETURN b.name, count(g) as genres
+
 ORDER BY genres DESC
 
 ## 4a consulta: Finding a genre with bands connected with this genre, and at the same time these bands connected to other genres. 
 // Let’s name it «the most mix-band genres».
+
 MATCH (g1:Genre)<-[:OF]-(b:Band)-[:OF]->(g2:Genre)
+
 RETURN g1.name as genre_name, count(DISTINCT b) as num_of_bands
+
 ORDER BY num_of_bands DESC
 
 ## 5a consulta: list of Listeners. 
 MATCH (b:Band)-[:OF]->(g:Genre { name: "Rock" })
+
 CALL apoc.load.html("https://last.fm/music/" + replace(b.name, " ", "+") + "/+listeners", { data: "h4.user-list-name a" }) YIELD value
+
 UNWIND value.data as n
+
 MERGE (p:Person { name: n.text })
+
 MERGE (p)-[:LIKES]->(b)
 
 ## 6a consulta: esses são os gostos do Vlad! 
 ### Eu perdi a vontade de fazer a minha versão logo depois de meu fracasso bem no começo...  :(
 // I pick only 6 genres, that I prefer: Indie, Rock, British, Alternative, Metal, Electronic.
+
 MATCH (p:Person)-[:LIKES]->(b:Band)
+
 WITH p, count(b) as bands_likes
+
 RETURN p.name as name, bands_likes
+
 ORDER BY bands_likes DESC
 
 ## 6a consulta -- 2a parte (aqui seria a minha adaptação para meus gostos!)
+
 WITH ["system of a down", "linkin park", "franz ferdinand", "oasis", "the killers", "arctic monkeys", "daft punk", "chemical brothers", "underworld", "kasabian", "queen", "red hot chili peppers", "the strokes", "foals", "the black keys", "rammstein", "imagine dragons", "coldplay"] as favorites
+
 MATCH (b:Band)
+
 WHERE apoc.coll.indexOf(favorites, toLower(b.name)) > -1
+
 MERGE (p:Person { name: "vlad batushkov" })
+
 MERGE (p)-[:LIKES]->(b)
 
 ## This is not a full picture, but by this list I can recognize my music preferences.
 // 6a consulta -- 3a parte - a adaptação é aqui ó: E aqui tbm tem adaptação
-MATCH (p:Person { name: "sidnei lopes" })-[:LIKES]->(b:Band)-[:OF]->(g:Genre) RETURN p, b, g
+
+MATCH (p:Person { name: "sidnei lopes" })-[:LIKES]->(b:Band)-[:OF]->(g:Genre) 
+
+RETURN p, b, g
 
 ## 7a consulta:
 ## What music bands can be recommended to me? Ok, how to solve this task. 
@@ -146,10 +174,15 @@ MATCH (p:Person { name: "sidnei lopes" })-[:LIKES]->(b:Band)-[:OF]->(g:Genre) RE
 // Within  these persons find bands (excluding bands, that I already like) with biggest amount of followers.
 
 MATCH (vb:Person { name: "sidnei lopes" })-[:LIKES]->(cross_band:Band)<-[:LIKES]-(p:Person)-[:LIKES]->(other_band:Band)
+
 WHERE NOT (vb)-[:LIKES]->(other_band)
+
 WITH other_band.name as name, count(p) as followers_num
+
 RETURN name, followers_num
+
 ORDER BY followers_num DESC
+
 LIMIT 10
 
 ## References:
