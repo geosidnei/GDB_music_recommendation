@@ -49,22 +49,21 @@ import requests
 from bs4 import BeautifulSoup
 from neo4j import GraphDatabase
 
-# 1. Extração dos dados
+## 1. Extração dos dados
 url = "https://www.last.fm/music"
 response = requests.get(url)
 soup = BeautifulSoup(response.text, 'html.parser')
 
 tags = [a.get_text(strip=True) for a in soup.select("a.music-more-tags-tag-inner-wrap")]
 
-# 2. Inserção no Neo4j Aura
+## 2. Inserção no Neo4j Aura
 driver = GraphDatabase.driver("neo4j+s://<seu-id>.databases.neo4j.io", auth=("neo4j", "sua-senha"))
 
 with driver.session() as session:
     session.run("UNWIND $tags AS tagName MERGE (t:Tag {name: tagName})", tags=tags)"
 
-# 2a alternativa para o problema: INSTALAR O NEO4J DESKTOP
-##
-2. Usar o Neo4j Desktop (Local)
+## 2a alternativa para o problema: INSTALAR O NEO4J DESKTOP
+## 2. Usar o Neo4j Desktop (Local)
 
 Se o objetivo do exercício for estritamente aprender o comando apoc.load.html, você não conseguirá usar o Aura.
 Baixe e instale o Neo4j Desktop.
@@ -83,21 +82,29 @@ Para gerenciar seus bancos de dados e verificar as limitações atuais, você po
 
 De nada! Essa é a melhor estratégia: o Python resolve o problema de forma mais profissional e segura para ambientes em nuvem, enquanto o Desktop serve como um laboratório sem restrições.
 Se você optar pelo Python, aqui estão três dicas rápidas para não ter erro:
-Instale as bibliotecas necessárias:
+
+## Instale as bibliotecas necessárias:
+
 bash
+
 pip install neo4j requests beautifulsoup4
+
 Use o código com cuidado.
 
 Cuidado com o Selecionador: O Last.fm costuma mudar as classes CSS com frequência. Se o código não retornar nada, abra o site no navegador, clique com o botão direito no elemento desejado e use a opção "Inspecionar" para confirmar se a classe music-more-tags-tag-inner-wrap ainda é a correta.
+
 Credenciais do Aura: Lembre-se de baixar o arquivo credentials.txt que o Aura fornece ao criar a instância. Você precisará do Connection URI, Username (geralmente neo4j) e da Password.
+
 Se precisar de ajuda para ajustar o código de inserção (o MERGE ou CREATE) quando os dados chegarem no Python, é só chamar! Boa sorte com o exercício.
 
 De nada! Se precisar de mais alguma ajuda com o código em Python ou com as configurações do Neo4j Desktop em sua jornada de estudos em 2026, é só chamar.
-Dica final: Ao usar o Python, verifique sempre a documentação atualizada no Portal de Desenvolvedores do Neo4j para garantir a compatibilidade com as versões mais recentes das bibliotecas.
+## Dica final: Ao usar o Python, verifique sempre a documentação atualizada no Portal de Desenvolvedores do Neo4j para garantir a compatibilidade com as versões mais recentes das bibliotecas.
+
 Boa sorte com seus grafos e com o Last.fm!
 
 ## Voltando aos códigos de Vlad Batushkov 
 ## 2a consulta: adicionando bandas aos gêneros
+
 MATCH (g:Genre)
 
 CALL apoc.load.html("https://last.fm" + g.url + "/artists", { data: "h3.big-artist-list-title a" }) YIELD value
@@ -147,7 +154,7 @@ RETURN p.name as name, bands_likes
 
 ORDER BY bands_likes DESC
 
-## 6a consulta -- 2a parte (aqui seria a minha adaptação para meus gostos!)
+### 6a consulta -- 2a parte (aqui seria a minha adaptação para meus gostos!)
 
 WITH ["system of a down", "linkin park", "franz ferdinand", "oasis", "the killers", "arctic monkeys", "daft punk", "chemical brothers", "underworld", "kasabian", "queen", "red hot chili peppers", "the strokes", "foals", "the black keys", "rammstein", "imagine dragons", "coldplay"] as favorites
 
@@ -159,7 +166,7 @@ MERGE (p:Person { name: "vlad batushkov" })
 
 MERGE (p)-[:LIKES]->(b)
 
-## This is not a full picture, but by this list I can recognize my music preferences.
+## "This is not a full picture, but by this list I can recognize my music preferences" (Vlad Batushkov).
 // 6a consulta -- 3a parte - a adaptação é aqui ó: E aqui tbm tem adaptação
 
 MATCH (p:Person { name: "sidnei lopes" })-[:LIKES]->(b:Band)-[:OF]->(g:Genre) 
@@ -167,7 +174,7 @@ MATCH (p:Person { name: "sidnei lopes" })-[:LIKES]->(b:Band)-[:OF]->(g:Genre)
 RETURN p, b, g
 
 ## 7a consulta:
-## What music bands can be recommended to me? Ok, how to solve this task. 
+## "What music bands can be recommended to me? Ok, how to solve this task." (Vlad Batushkov).
 // One of the ways is: to find all persons, who listen same music bands as me. 
 // Within  these persons find bands (excluding bands, that I already like) with biggest amount of followers.
 
