@@ -32,12 +32,12 @@ UNWIND value.data as n
 
 MERGE (g:Genre { url: n.attributes.href, name: apoc.text.capitalizeAll(n.text) })
 
-## como a primeira consulta falhou recorri à IA do Google:
+## Como a primeira consulta falhou recorri à IA do Google:
 
 "O erro ocorre porque o Neo4J Aura (a versão em nuvem) restringe o uso de diversos procedimentos da biblioteca APOC por motivos de segurança, especialmente aqueles que realizam requisições HTTP externas ou acessam arquivos, como o apoc.load.html [2].
 Para resolver isso e prosseguir com seu exercício em 2026, você tem duas alternativas principais:
 
-1. Usar uma aplicação intermediária (Recomendado)
+## 1a alternativa: Usar uma aplicação intermediária (Recomendado)
 Como o banco de dados não pode mais "buscar" a informação diretamente na web, você deve usar uma linguagem de programação (Python, JavaScript ou Java) para fazer o scraping e enviar os dados prontos para o Aura.
 
 Exemplo em Python:
@@ -62,9 +62,7 @@ driver = GraphDatabase.driver("neo4j+s://<seu-id>.databases.neo4j.io", auth=("ne
 with driver.session() as session:
     session.run("UNWIND $tags AS tagName MERGE (t:Tag {name: tagName})", tags=tags)"
 
-# 2a alternativa para o problema:
-##
-INSTALAR O NEO4J DESKTOP
+# 2a alternativa para o problema: INSTALAR O NEO4J DESKTOP
 ##
 2. Usar o Neo4j Desktop (Local)
 
