@@ -1,32 +1,62 @@
 # GDB_music_recommendation
-This page only codes copied from Vlad Badushkov githupage and AI consults only to learn how this works. 
+This page only have copied codes from Vlad Badushkov github page, his medium site and results from AI queries in an attempt to learn something about this theme. 
 
-//desafio 2 (2° módulo -)
+# Bootcamp Neo4J - Análise de Dados com Grafos
+## desafio do 2° módulo: Primeiros Passos com Cypher e Neo4j.
 
-//Representar Usuários Músicas Artistas e Gêneros como nós em grafo
+// Representar Usuários Músicas Artistas e Gêneros como nós em grafo
 // achei estes dados: https://www.kaggle.com/code/vatsalmavani/music-recommendation-system-using-spotify-dataset/input 
-// data.csv (30MB) <> 
-data_by_artist.csv(4.32 mb)  
-data_by_genres.csv (600 kb)  
-data_by_year.csv (22 kb)  
-data_w_gentes(5,2 mb) 
+// data.csv (30MB) 
+// data_by_artist.csv(4.32 mb)  
+// data_by_genres.csv (600 kb)  
+// data_by_year.csv (22 kb)  
+// data_w_gentes(5,2 mb) 
 
-//Representar interações: artistas, gêneros, datas de gravações, escutar, curtir, seguir) como arestas com propriedades
+// Representar interações: artistas, gêneros, datas de gravações, escutar, curtir, seguir) como arestas com propriedades
 
-//Utilizar consultas Cypher com base em conexões no grafo
+// Utilizar consultas Cypher com base em conexões no grafo
 
-//Query: "Quais artistas você recomendaria com base nos artistas de rock mais ouvidos?"
+// Query: "Quais artistas você recomendaria com base nos artistas de rock mais ouvidos?"
 
 //************************************************************************************************************************************************************
 
 fonte destes dados:
-//https://vladbatushkov.medium.com/one-month-graph-challenge-melodiya-3836951a905b
+https://vladbatushkov.medium.com/one-month-graph-challenge-melodiya-3836951a905b
 
-//testar no memgraph do levelho
-//1a consulta: chama lastfm, desenrola os dados, cria
+# 1a consulta: chama lastfm, desenrola os dados, cria
 CALL apoc.load.html("https://www.last.fm/music", { data: "a.music-more-tags-tag-inner-wrap, section.music-section:eq(0) a.music-featured-item-heading-link" }) YIELD value
 UNWIND value.data as n
 MERGE (g:Genre { url: n.attributes.href, name: apoc.text.capitalizeAll(n.text) })
+
+# como a primeira consulta falhou recorri à IA do Google:
+
+O erro ocorre porque o Neo4J Aura (a versão em nuvem) restringe o uso de diversos procedimentos da biblioteca APOC por motivos de segurança, especialmente aqueles que realizam requisições HTTP externas ou acessam arquivos, como o apoc.load.html [2].
+Para resolver isso e prosseguir com seu exercício em 2026, você tem duas alternativas principais:
+1. Usar uma aplicação intermediária (Recomendado)
+Como o banco de dados não pode mais "buscar" a informação diretamente na web, você deve usar uma linguagem de programação (Python, JavaScript ou Java) para fazer o scraping e enviar os dados prontos para o Aura.
+Exemplo em Python:
+Você pode usar a biblioteca BeautifulSoup para extrair os dados e o driver oficial do Neo4j para Python para inseri-los:
+
+
+#código python: 
+
+import requests
+from bs4 import BeautifulSoup
+from neo4j import GraphDatabase
+
+# 1. Extração dos dados
+url = "https://www.last.fm/music"
+response = requests.get(url)
+soup = BeautifulSoup(response.text, 'html.parser')
+
+tags = [a.get_text(strip=True) for a in soup.select("a.music-more-tags-tag-inner-wrap")]
+
+# 2. Inserção no Neo4j Aura
+driver = GraphDatabase.driver("neo4j+s://<seu-id>.databases.neo4j.io", auth=("neo4j", "sua-senha"))
+
+with driver.session() as session:
+    session.run("UNWIND $tags AS tagName MERGE (t:Tag {name: tagName})", tags=tags)
+
 
 //2a consulta: adicionando bandas aos gêneros
 MATCH (g:Genre)
@@ -101,32 +131,6 @@ Acesso em: 27 de janeiro de 2026.
 
 
 
-O erro ocorre porque o Neo4J Aura (a versão em nuvem) restringe o uso de diversos procedimentos da biblioteca APOC por motivos de segurança, especialmente aqueles que realizam requisições HTTP externas ou acessam arquivos, como o apoc.load.html [2].
-Para resolver isso e prosseguir com seu exercício em 2026, você tem duas alternativas principais:
-1. Usar uma aplicação intermediária (Recomendado)
-Como o banco de dados não pode mais "buscar" a informação diretamente na web, você deve usar uma linguagem de programação (Python, JavaScript ou Java) para fazer o scraping e enviar os dados prontos para o Aura.
-Exemplo em Python:
-Você pode usar a biblioteca BeautifulSoup para extrair os dados e o driver oficial do Neo4j para Python para inseri-los:
-
-
-#código python: 
-
-import requests
-from bs4 import BeautifulSoup
-from neo4j import GraphDatabase
-
-# 1. Extração dos dados
-url = "https://www.last.fm/music"
-response = requests.get(url)
-soup = BeautifulSoup(response.text, 'html.parser')
-
-tags = [a.get_text(strip=True) for a in soup.select("a.music-more-tags-tag-inner-wrap")]
-
-# 2. Inserção no Neo4j Aura
-driver = GraphDatabase.driver("neo4j+s://<seu-id>.databases.neo4j.io", auth=("neo4j", "sua-senha"))
-
-with driver.session() as session:
-    session.run("UNWIND $tags AS tagName MERGE (t:Tag {name: tagName})", tags=tags)
 
 
 ===============================================================
